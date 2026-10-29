@@ -1,11 +1,843 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reportes - Guardian Escolar</title>
+    <title>Auditoría Técnica E2E — School Guardian</title>
+    <style>
+        :root {
+            --bg-color: #F0F4F8;
+            --card-bg: #FFFFFF;
+            --card-secondary-bg: #F8FAFC;
+            --text-color: #111827;
+            --title-color: #1A2E4A;
+            --text-secondary: #64748B;
+            --border-color: #E2E8F0;
+            --color-navbar: #1A56DB;
+            --accent-color: #003AB8;
+            --hover-color: #2061EC;
+            --button-apply: #1A56DB;
+            --button-cancel: #FFFFFF;
+            --alert-bg: #FEF2F2;
+            --alert-title: #7F1D1D;
+            --alert-text: #374151;
+            --alert-icon: #DC2626;
+            --sev-critico: #DC2626;
+            --sev-alto: #EA580C;
+            --sev-medio: #D97706;
+            --sev-bajo: #059669;
+            --font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: var(--font-family);
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .navbar {
+            background: var(--color-navbar);
+            color: #fff;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .navbar .logo { font-weight: 700; font-size: 1.25rem; letter-spacing: 0.5px; }
+        .navbar .tagline { font-size: 0.85rem; opacity: 0.9; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+        .header { margin-bottom: 2rem; }
+        .header h1 { color: var(--title-color); font-size: 2rem; margin-bottom: 0.5rem; }
+        .header .meta { color: var(--text-secondary); font-size: 0.95rem; }
+        .badge {
+            display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .badge-critico { background: var(--sev-critico); color: #fff; }
+        .badge-alto { background: var(--sev-alto); color: #fff; }
+        .badge-medio { background: var(--sev-medio); color: #fff; }
+        .badge-bajo { background: var(--sev-bajo); color: #fff; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .kpi { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .kpi .num { font-size: 1.75rem; font-weight: 800; color: var(--color-navbar); }
+        .kpi .lbl { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem; }
+        .section { margin-bottom: 2.5rem; }
+        .section h2 { color: var(--title-color); font-size: 1.35rem; border-bottom: 3px solid var(--color-navbar); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .section p { color: var(--text-secondary); margin-bottom: 1rem; }
+        table { width: 100%; border-collapse: collapse; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+        th { background: var(--card-secondary-bg); color: var(--title-color); text-align: left; padding: 0.85rem 1rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.3px; border-bottom: 1px solid var(--border-color); }
+        td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; vertical-align: top; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: var(--card-secondary-bg); }
+        .matriz td, .matriz th { text-align: center; font-size: 0.85rem; }
+        .finding { border: 1px solid var(--border-color); border-left: 4px solid var(--color-navbar); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: var(--card-bg); }
+        .finding-critico { border-left-color: var(--sev-critico); }
+        .finding-alto { border-left-color: var(--sev-alto); }
+        .finding-medio { border-left-color: var(--sev-medio); }
+        .finding-bajo { border-left-color: var(--sev-bajo); }
+        .finding .fid { font-weight: 800; color: var(--color-navbar); font-size: 0.9rem; }
+        .finding .meta { font-size: 0.8rem; color: var(--text-secondary); margin: 0.35rem 0; display: flex; gap: 1rem; flex-wrap: wrap; }
+        .finding .meta span { white-space: nowrap; }
+        .finding h4 { margin: 0.5rem 0 0.25rem; color: var(--title-color); font-size: 1rem; }
+        .finding p { margin: 0.25rem 0; font-size: 0.9rem; }
+        .evidencia { background: var(--card-secondary-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.75rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; color: var(--text-color); margin: 0.5rem 0; overflow-x: auto; }
+        .recomendacion { color: var(--text-color); font-size: 0.9rem; margin-top: 0.5rem; }
+        .recomendacion b { color: var(--color-navbar); }
+        .nota { background: var(--alert-bg); border-left: 4px solid var(--alert-icon); border-radius: 6px; padding: 1rem; margin-top: 1rem; font-size: 0.9rem; color: var(--alert-text); }
+        .servicio-card { border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; background: var(--card-bg); }
+        .servicio-card h3 { color: var(--title-color); font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .servicio-card .sub { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem; }
+        .footer { margin-top: 3rem; padding: 1.5rem; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.85rem; text-align: center; }
+    </style>
 </head>
 <body>
-    
+    <nav class="navbar">
+        <div class="logo">🛡️ School Guardian</div>
+        <div class="tagline">Auditoría Técnica Punta a Punta (E2E) — Informe Consolidado</div>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>Auditoría Técnica E2E — School Guardian</h1>
+            <div class="meta">
+                Alcance: <code>backend/</code> · <code>scholl-guardian-project/</code> (frontends) · <code>docs/</code> &nbsp;|&nbsp;
+                Rama auditada: <code>main</code> &nbsp;|&nbsp;
+                Generado: 29 Oct 2026
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi"><div class="num">11</div><div class="lbl">Servicios/backend + frontends auditados</div></div>
+            <div class="kpi"><div class="num badge badge-critico" style="padding:0.15rem 0.6rem">8 CRÍTICOS</div><div class="lbl">Hallazgos críticos</div></div>
+            <div class="kpi"><div class="num badge badge-alto" style="padding:0.15rem 0.6rem">21 ALTOS</div><div class="lbl">Hallazgos altos</div></div>
+            <div class="kpi"><div class="num badge badge-medio" style="padding:0.15rem 0.6rem">35 MEDIOS</div><div class="lbl">Hallazgos medios</div></div>
+            <div class="kpi"><div class="num badge badge-bajo" style="padding:0.15rem 0.6rem">13 BAJOS</div><div class="lbl">Hallazgos bajos</div></div>
+        </div>
+
+        <div class="nota">
+            <b>Limitación de verificación en entorno real:</b> no existe servidor desplegado alcanzable (puerto 8000 sin respuesta en localhost; no se proporcionó URL de producción/staging). Los servicios backend (Kong :8000, ms-iam, ms-user-management, ms-school-management, ms-fleet, ms-route, ms-notification, sg-ms-forgot-information, sg-ms-gps) y los frontends (web Angular en :4200 / mobile Expo) no están en ejecución. Por tanto, la "verificación E2E" se basa en trazado estático de código, contratos OpenAPI y configuración de Kong, corroborados con credenciales documentadas (Admin: admin2@school-guardian.com / Superadmin: sch00l.guardi4n@gmail.com — solo para el web). Los flujos de login y recupero se validaron por lectura del código de ms-iam, ms-forgot-information, auth.service.ts y auth.interceptor.ts.
+        </div>
+
+        <div class="section">
+            <h2>1. Tabla Comparativa por Dimensión y Servicio</h2>
+            <p>Cada celda resume el resultado de la evaluación (Funcionalidad, Rendimiento, Buenas prácticas, Patrones de diseño, Consistencia con docs, Verificación E2E) con la severidad del hallazgo más grave detectado en esa dimensión para el servicio.</p>
+            <table class="matriz">
+                <thead>
+                    <tr>
+                        <th>Servicio</th>
+                        <th>Funcionalidad</th>
+                        <th>Rendimiento</th>
+                        <th>Buenas prácticas</th>
+                        <th>Patrones de diseño</th>
+                        <th>Consistencia docs</th>
+                        <th>Verificación E2E</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><b>API Gateway (Kong)</b></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-bajo">Bajo</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>ms-iam (Auth/IAM)</b></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>ms-user-management</b></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-bajo">Bajo</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>ms-school-management</b></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>ms-fleet</b></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>ms-route</b></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-bajo">Bajo</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>ms-notification</b></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-bajo">Bajo</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>sg-ms-gps</b></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>sg-ms-forgot-information</b></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>Frontend Web (Angular)</b></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-bajo">Bajo</span></td>
+                        <td><span class="badge badge-bajo">Bajo</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                    <tr>
+                        <td><b>Frontend Mobile (React Native)</b></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-medio">Medio</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>2. Resumen de Severidad Global</h2>
+            <table>
+                <thead>
+                    <tr><th>Severidad</th><th>Cantidad</th><th>Ejemplos representativos</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="badge badge-critico">Crítico</span></td><td>8</td><td>Secretos reales commiteados (sg-ms-forgot-information .env y docker-compose: SMTP, sa RDS, Twilio, OTP pepper); Firebase Admin private_key commiteado (mobile); ms-iam sin rate limiting/bloqueo de cuenta; IDOR listado de sedes ms-school-management; endpoint de flota sin autorización ms-fleet; secretos hardcodeados ms-fleet/.env; sg-ms-gps ausente del compose pero referenciado en Kong; CORS con orígenes de túnel efímero.</td></tr>
+                    <tr><td><span class="badge badge-alto">Alto</span></td><td>21</td><td>Proveedores de tenant inconsistentes; confianza ciega en cabeceras X-User-*; listado GPS sin filtro de tenant; KONG_TRUSTED_IPS 0.0.0.0/0; JWT decodido sin verificación en cliente web; pantallas mobile sin RequireAuth; logout no revoca refresh; deny-list en memoria; claves RSA efímeras; credenciales en .env ms-iam; PATCH status sin acotar tenant; GET buses/assigned sin atributo auth; CORS orígenes túnel; sin límite cuerpo/timeouts Kong; sin deny-list sg-jwt; consumidores Kafka sin veneno; etc.</td></tr>
+                    <tr><td><span class="badge badge-medio">Medio</span></td><td>35</td><td>Consultas sin paginación (N+1, .ToList() sin Take); excepciones genéricas 500; dos @RestControllerAdvice inconsistente; refresh sin jti obligatorio; salud pública sin rate limit; cobertura tests &lt;80% y sin tests de contrato; data-dictionary vs modelo desplegado; design-system vs CSS real; etc.</td></tr>
+                    <tr><td><span class="badge badge-bajo">Bajo</span></td><td>13</td><td>Detail=ex.Message expone detalles internos; atributos de autorización duplicados en 3 servicios; X-User-Role condicional en sg-jwt; public_paths por prefijo; api-gateway.yaml con paths: {}; colores del design-system no sincronizados; etc.</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>3. Hallazgos Detallados por Servicio</h2>
+
+            <div class="servicio-card">
+                <h3>3.1 API Gateway (Kong)</h3>
+                <div class="sub">ms-api-gateway — kong.yml, plugin custom sg-jwt, docker-compose del gateway.</div>
+                <div class="finding finding-alto">
+                    <div class="fid">GW-01 · CORS con orígenes de túnel efímero y credenciales habilitadas</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / CORS</span><span>Archivo: kong.yml:66-74</span></div>
+                    <h4>Descripción</h4>
+                    <p>La configuración CORS común incluye orígenes públicos/ephémeros de túnel (ngrok-free.dev, trycloudflare.com, school-guardian.duckdns.org, scarecrow-backspin-vanish.ngrok-free.dev, incurred-stroke-town-fares.trycloudflare.com) e IPs privadas (192.168.100.211:8081/8082), con <code>credentials: true</code>. Un atacante podría reclamar uno de estos dominios efímeros y realizar peticiones autenticadas con credenciales de usuarios reales.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Eliminar orígenes de túnel e IPs privadas; mantener solo dominios propios y restringir credenciales a orígenes de confianza.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">GW-02 · Sin límite de cuerpo de petición ni timeouts</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Resiliencia / DoS</span><span>Archivo: kong.yml (servicios y plugins)</span></div>
+                    <h4>Descripción</h4>
+                    <p>Kong no define <code>client_max_body_size</code> por ruta ni timeouts de connect/read/send. Un atacante puede enviar cuerpos grandes para agotar memoria (DoS) o mantener conexiones abiertas.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir límite de cuerpo (p. ej. 1 MB) y timeouts de respuesta en cada ruta/servicio upstream.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">GW-03 · Rate limiting insuficiente y KONG_TRUSTED_IPS 0.0.0.0/0</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Rate limiting</span><span>Archivo: kong.yml:58-62, 97-102; docker-compose.yml:20-26</span></div>
+                    <h4>Descripción</h4>
+                    <p>El rate limiting general usa política <code>local</code> (no funciona en clúster) y se limita por header Authorization; el login limita por IP (20/min, 200/h). No hay rate limit dedicado a /refresh, /logout, /health ni a /api/v1/password*. Además, <code>KONG_TRUSTED_IPS: 0.0.0.0/0</code> permite suplantar IP mediante X-Forwarded-For.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir rate limit por IP en /refresh, /logout, /health, /api/v1/password*; usar política cluster si hay varios nodos; restringir KONG_TRUSTED_IPS al proxy de confianza (Caddy).</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">GW-04 · Sin consulta de deny-list de tokens revocados</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / Sesiones</span><span>Archivo: kong/plugins/sg-jwt/handler.lua</span></div>
+                    <h4>Descripción</h4>
+                    <p>El plugin sg-jwt valida la firma RS256 del JWT contra JWKS de ms-iam pero no consulta una deny-list, por lo que un token robado permanece válido hasta su expiración natural incluso tras logout o revocación.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Documentar el TTL máximo aceptado o añadir consulta corta-caché a la deny-list persistente de IAM antes de aceptar el token.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">GW-05 · strip_path inconsistente (false en iam/forgot/gps, true en el resto)</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Configuración</span><span>Archivo: kong.yml:39, 54, 206, 243 vs 117, 135, 155, 173, 192</span></div>
+                    <h4>Descripción</h4>
+                    <p>ms-iam, ms-forgot-information y ms-gps reciben el prefijo completo (strip_path: false); el resto lo descarta. Acopla los upstreams al prefijo del gateway y dificulta diagnósticos de 404 y cambios de versionado.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Estandarizar strip_path o documentar explícitamente el contrato prefix-aware de iam/forgot/gps.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">GW-06 · public_paths por prefijo en sg-jwt</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / Autenticación</span><span>Archivo: kong/plugins/sg-jwt/handler.lua:79-86; kong.yml:18-24</span></div>
+                    <h4>Descripción</h4>
+                    <p>La comparación de rutas públicas usa coincidencia por prefijo. El comentario de kong.yml advierte que añadir un bare /api/v1/auth haría públicos /profile y /terms/*. Fragilidad de diseño para futuras adiciones.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Mantener public_paths como rutas exactas y validar que cualquier futura adición no exponga subrutas no intencionadas.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">GW-07 · Health check /health inexistente en Kong vs documentación</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Documentación</span><span>Archivo: kong.yml vs docs/10-devops/local-setup.md</span></div>
+                    <h4>Descripción</h4>
+                    <p>El runbook y local-setup documentan curl localhost:8000/health, pero kong.yml no define ruta /health; el health es responsabilidad de cada servicio backend, no del gateway.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir ruta /health en Kong o corregir la documentación para que apunte a cada servicio.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">GW-08 · X-User-Role inyectado condicionalmente</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Funcionalidad / Contexto de usuario</span><span>Archivo: kong/plugins/sg-jwt/handler.lua:185-191</span></div>
+                    <h4>Descripción</h4>
+                    <p>X-User-Role solo se inyecta si el token trae roleId; si falta, el upstream recibe X-User-Id sin rol. docs promete X-User-Id y X-User-Role siempre.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Inyectar un rol por defecto (vacío o "unauthenticated") cuando falte, o documentar que X-User-Role es opcional.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.2 ms-iam (Autenticación e IAM)</h3>
+                <div class="sub">Spring Boot/Java — LoginService, TokenProvider, RefreshTokenService, LogoutService, controladores /api/v1/auth/*.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">IAM-01 · Ausencia de rate limiting y bloqueo de cuenta por intentos fallidos</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Seguridad / Autenticación</span><span>Archivo: LoginService.java; Seguridad: DIAGNOSTICO_ERROR_ATTEMPTCOUNT.md (no existe)</span></div>
+                    <h4>Descripción</h4>
+                    <p>LoginService no implementa conteo de intentos fallidos por email/IP ni bloqueo temporal de cuenta. Está expuesto a credential stuffing y fuerza bruta sin freno. El documento DIAGNOSTICO_ERROR_ATTEMPTCOUNT.md referenciado no existe en el repositorio.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Implementar rate limiting por email e IP en LoginService con bloqueo temporal tras N fallos (p. ej. 5 fallos → bloqueo 15 min) y contadores en Redis/BD.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">IAM-02 · Logout no revoca el refresh token ni cierra la sesión</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Sesiones</span><span>Archivo: LogoutService.java</span></div>
+                    <h4>Descripción</h4>
+                    <p>LogoutService no revoca el refresh token persistido ni finaliza la SessionProfileEntity. Un refresh token robado sigue siendo válido hasta su expiración (7 días) a pesar de que el usuario cierre sesión.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> En logout, marcar el refresh token como revocado y la sesión como terminada; invalidar todas las sesiones del perfil si se solicita "cerrar en todos los dispositivos".</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">IAM-03 · Deny-list de tokens en memoria (no compartida ni persistente)</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Tokens</span><span>Archivo: InMemoryTokenDenyList</span></div>
+                    <h4>Descripción</h4>
+                    <p>La denylist de tokens revocados vive en memoria de la instancia. En entorno con varios pods/replicas, un token revocado en una instancia sigue siendo válido en las demás.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Sustituir por denylist persistente/compartida (Redis) consultada por todas las instancias antes de aceptar un refresh.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">IAM-04 · RsaKeyProvider genera claves RSA efímeras si faltan JWT_PRIVATE_KEY/JWT_PUBLIC_KEY</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Consistencia-docs</span><span>Archivo: RsaKeyProvider.java:112-120; README.md:34-37</span></div>
+                    <h4>Descripción</h4>
+                    <p>Si faltan las variables de entorno JWT, la app genera un par de claves RSA efímero en arranque en lugar de fallar. Todos los JWT emitidos se invalidan en cada reinicio y el kid del JWKS no es estable.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Hacer que la aplicación falle al arrancar si faltan JWT_PRIVATE_KEY y JWT_PUBLIC_KEY; mantener claves estables entre reinicios.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">IAM-05 · Credenciales reales en texto plano en .env (sa de SQL Server, clave privada RSA, API key interna)</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Secretos</span><span>Archivo: ms-iam/.env:5, .env:19-20</span></div>
+                    <h4>Descripción</h4>
+                    <p>.env contiene MSSQL_SA_PASSWORD=[REDACTED], la clave privada RSA PKCS#8 completa de JWT y APP_INTERNAL_API_KEY. Aunque .env está en .gitignore, existe en disco con valores reales y .env.example expone la estructura completa.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Mover secretos a un gestor (AWS Secrets Manager / variables de entorno del orquestador), rotar la clave privada JWT y la contraseña de sa expuestas, y dejar .env.example con placeholders vacíos.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">IAM-06 · Enumeración de usuarios vía códigos de estado distintos</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / Autenticación</span><span>Archivo: LoginService.java:39-49, 51-54</span></div>
+                    <h4>Descripción</h4>
+                    <p>El login distingue "correo no existe", "contraseña inválida" y "cuenta inactiva" en logs y excepciones. Aunque los mensajes al cliente son genéricos ("Invalid credentials"), el comportamiento diferencial permite enumerar emails activos.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Unificar todas las fallas de autenticación bajo un único mensaje y código 401 genérico; evitar diferenciar en logs que puedan filtrarse.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">IAM-07 · Dos @RestControllerAdvice con mapeo inconsistente de excepciones</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Buenas prácticas / Consistencia-docs</span><span>Archivo: GlobalExceptionHandler.java; AuthExceptionHandler.java</span></div>
+                    <h4>Descripción</h4>
+                    <p>Dos clases @RestControllerAdvice manejan InvalidCredentialsException y AccountInactiveException sin @Order. GlobalExceptionHandler mapea cuenta inactiva a 403, AuthExceptionHandler a 401. Comportamiento no determinista según la instancia que procese la petición.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Consolidar en un único @RestControllerAdvice con @Order explícito; mapear todas las fallas de auth a 401 genérico y documentar el contrato de errores en OpenAPI/Scalar.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">IAM-08 · Sin límite de sesiones concurrentes ni revocación global por perfil</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / Sesiones</span><span>Archivo: RefreshTokenService.java:77-83; AuthenticationRepositoryImpl.java:126-131</span></div>
+                    <h4>Descripción</h4>
+                    <p>No hay límite de refresh tokens activos por usuario ni invalidación de todas las sesiones al cambiar contraseña. Un atacante con refresh token robado mantiene sesiones paralelas indefinidamente (cada refresh extiende DateEnd).</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir límite de refresh tokens activos por sesión/usuario y operación de revocación global de sesiones de un perfil (tras cambio de contraseña o compromiso).</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">IAM-09 · Refresh token sin jti obligatorio vinculado a la sesión</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Buenas prácticas / Tokens</span><span>Archivo: JwtTokenProvider.java:59; RefreshTokenService.java:33-46</span></div>
+                    <h4>Descripción</h4>
+                    <p>El jti del access token es opcional y delegado al llamador (UUID aleatorio si no viene). No hay jti obligatorio único vinculado a la entidad persistida para revocación granular.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Generar siempre jti UUID único en ambos tokens, almacenarlo vinculado a la sesión y consultar denylist en validación de refresh.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">IAM-10 · Health check público sin rate limiting propio</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Buenas prácticas</span><span>Archivo: AuthController.java:36-40; SecurityConfig.java:28</span></div>
+                    <h4>Descripción</h4>
+                    <p>GET /api/v1/auth/health está bajo permitAll() y expuesto públicamente sin rate limiting propio; vector de sondeo o DoS ligero.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Mantener público pero aplicar rate limiting por IP en Kong específicamente para este endpoint.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.3 ms-user-management</h3>
+                <div class="sub">.NET/C# — controladores PersonsController, ProfileLookupController; repositorios PersonRepository; DTOs de cambio de estado.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">UM-01 · Contraseña de BD en texto plano en .env (compartida por 3 servicios)</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Seguridad / Secretos</span><span>Archivo: ms-user-management/.env:1</span></div>
+                    <h4>Descripción</h4>
+                    <p>Cadena de conexión con Password=[REDACTED] para el usuario sgadmin. El mismo secreto se repite en ms-school-management/.env y ms-fleet/.env (un solo sa para los tres servicios). Aunque .env está en .gitignore, existe en disco con credenciales reales.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Mover a gestor de secretos, rotar [REDACTED] inmediatamente y usar credenciales distintas por servicio.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">UM-02 · PATCH /persons/{id}/status sin acotar a tenant y DTO sin validación</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Validación de entrada</span><span>Archivo: PersonsController.cs:26-33; ChangePersonStatusRequestDto</span></div>
+                    <h4>Descripción</h4>
+                    <p>El endpoint solo lleva [RequirePermission(UsersManage)] y no acota el id al colegio/sede del llamante. El DTO Status es string sin [Required] ni enum; la validación ocurre solo en el caso de uso. Riesgo de cambiar estado de personas de otros colegios si el guard falla.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir [Required] y validación de enum al DTO, y filtro de tenant explícito en el controlador además del guard de aplicación.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">UM-03 · Consultas sin paginación en PersonRepository</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento / Buenas prácticas</span><span>Archivo: PersonRepository.cs:37-54</span></div>
+                    <h4>Descripción</h4>
+                    <p>GetAllAsync() ejecuta .ToListAsync() sin .Take() ni filtro de tenant en el repositorio. Permite volcado ilimitado de personas (DoS/memoria) si se expone.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Paginar GetAllAsync (page size por defecto + Take) y aplicar filtro de tenant en el repositorio, no solo en el guard.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">UM-04 · Excepciones genéricas devuelven 500 en lugar de 404</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Manejo de errores / Consistencia</span><span>Archivo: PersonRepository.cs:49, 66; ApiErrors.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Se lanzan new Exception("Person not found") en lugar de excepciones de dominio. ApiErrors no las mapea, así que devuelven 500 rompiendo el contrato de ProblemDetails consistentes.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Sustituir por PersonNotFoundException para que ApiErrors devuelva 404.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">UM-05 · Detail=ex.Message expone detalles internos</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Seguridad</span><span>Archivo: ApiErrors.cs:69</span></div>
+                    <h4>Descripción</h4>
+                    <p>El cuerpo ProblemDetails expone ex.Message con detalles técnicos internos al cliente.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Ocultar detalles internos en respuestas de error; usar mensajes genéricos para el cliente y loguear el detalle en el servidor.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.4 ms-school-management</h3>
+                <div class="sub">.NET/C# — REST (puerto 8080) y gRPC interno (5001); SchoolController, CampusController; TenantProvider/JwtTenantProvider.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">SM-01 · IDOR: listado de sedes por colegio sin filtro de tenant</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Seguridad / IDOR</span><span>Archivo: SchoolController.cs:125-130; ListCampusesBySchoolService.cs:17-21</span></div>
+                    <h4>Descripción</h4>
+                    <p>GET /api/v1/schools/{id}/campuses no tiene atributo de autorización ni verifica que el colegio pertenezca al tenant del llamante. Cualquier usuario autenticado puede listar sedes de cualquier colegio adivinando el GUID.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Aplicar ISchoolAccessPolicy.EnsureCanAccessAsync(schoolId) antes de consultar sedes.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">SM-02 · Dos ITenantProvider con lógica inconsistente (admin sin schoolId ve todos los colegios)</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Consistencia-docs</span><span>Archivo: TenantProvider.cs; JwtTenantProvider.cs; ServiceCollectionExtensions.cs:29</span></div>
+                    <h4>Descripción</h4>
+                    <p>TenantProvider filtra si RoleId != null && != 5; JwtTenantProvider para rol Admin exige SchoolId.HasValue, sino ShouldFilter=false → sin filtro, acceso total. Un admin sin claim schoolId vería todos los colegios.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Unificar ITenantProvider en una única implementación con reglas documentadas (Admin ⇒ schoolId; Student/Driver/Parent ⇒ campusId; SuperAdmin ⇒ sin filtro; fail-closed si no se resuelve).</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">SM-03 · Confianza ciega en cabeceras X-User-* del gateway</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / Autenticación</span><span>Archivo: GatewayAuthenticationHandler.cs:38-67</span></div>
+                    <h4>Descripción</h4>
+                    <p>El esquema "Gateway" construye la identidad a partir de X-User-Id, X-Campus-Id, X-School-Id confiando en que Kong las inyecte y borre las entrantes. Si Kong falla o se accede al servicio directamente, se puede suplantar cualquier identidad (schoolId/campusId).</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Validar en middleware que las peticiones REST provengan de Kong (IP de confianza o cabecera firmada) antes de aceptar X-User-*.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">SM-04 · Sin migraciones EF Core ni definición de índices</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento / Persistencia</span><span>Archivo: (infraestructura) — no se encontró carpeta Migrations</span></div>
+                    <h4>Descripción</h4>
+                    <p>No se encontró carpeta Migrations ni definición de índices de base de datos en el servicio (idem en los otros .NET). Riesgo de missing indexes y sin estrategia controlada de evolución del esquema.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir migraciones EF Core e índices al menos sobre columnas de filtro de tenant (SchoolId, CampusId, Status).</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">SM-05 · Atributos de autorización duplicados en los 3 servicios .NET</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Buenas prácticas / Consistencia</span><span>Archivo: RequirePermissionAttribute.cs; RequireRoleAttribute.cs (x3 servicios)</span></div>
+                    <h4>Descripción</h4>
+                    <p>RequirePermissionAttribute y RequireRoleAttribute se duplican textualmente en ms-user-management, ms-school-management y ms-fleet, dificultando el mantenimiento consistente de la política de autorización.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Extraer a una librería compartida o paquete NuGet interno para evitar duplicación y drift de políticas.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.5 ms-fleet</h3>
+                <div class="sub">.NET/C# — BusController, GpsDeviceController; IamGrpcClient/FleetGrpcClient con InternalApiKeyInterceptor; BusRepository.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">FL-01 · Secretos hardcodeados en .env (BD, Iam__ApiKey, Fleet__ApiKey compartidos)</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Seguridad / Secretos</span><span>Archivo: ms-fleet/.env:1, 7, 10</span></div>
+                    <h4>Descripción</h4>
+                    <p>Password=[REDACTED] en texto plano; además Iam__ApiKey y Fleet__ApiKey comparten el mismo valor base64. Un solo secreto para autenticación inter-servicio y acceso a BD, expuesto en archivo de configuración.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Mover Iam__ApiKey, Fleet__ApiKey y contraseña de BD a gestor de secretos; usar valores distintos por servicio y rotar la clave actual.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">FL-02 · GET /buses/assigned/{profileId} sin atributo de autorización (IDOR)</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / IDOR</span><span>Archivo: BusController.cs:137-149</span></div>
+                    <h4>Descripción</h4>
+                    <p>El endpoint no tiene [RequirePermission] ni [RequireRole]; depende únicamente del decorador DI AuthorizedGetBusAssignedToDriverService. Si el registro DI cambia o se consume la consulta cruda, se puede consultar el bus asignado de cualquier perfil.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir [RequirePermission(BusesRead)] o [BusesManage] explícitamente en GetAssignedToDriver.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">FL-03 · GET /api/gps-devices lista todos los dispositivos sin filtro de tenant (oversharing)</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / IDOR (oversharing)</span><span>Archivo: GpsDeviceController.cs:24-30</span></div>
+                    <h4>Descripción</h4>
+                    <p>Exige solo BusesManage y lista todos los dispositivos GPS sin filtro por campus/colegio del tenant. Un usuario ve dispositivos de otros colegios.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Filtrar GpsDeviceController.List por las sedes visibles del tenant.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">FL-04 · GetAllAsync sin .Take() — resultado ilimitado (DoS)</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento / Persistencia</span><span>Archivo: BusRepository.cs:25-34</span></div>
+                    <h4>Descripción</h4>
+                    <p>GetAllAsync(campusIds, ...) devuelve .ToListAsync(ct) sin .Take(). Usado por ListBasic y Search; con flota grande agota memoria y CPU.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Paginar GetAllAsync y endpoints de listado; buscar con filtros en SQL.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">FL-05 · Nombre de tabla erróneo DriverAssignemts (falta la 'n')</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Buenas prácticas / Correctividad</span><span>Archivo: FleetContext.cs:28</span></div>
+                    <h4>Descripción</h4>
+                    <p>DriverAssignemts es un error tipográfico. Si la tabla real es DriverAssignments, las consultas de asignaciones fallan en runtime. GpsDevice está ExcludeFromMigrations() pero se consulta directamente.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Corregir DriverAssignemts → DriverAssignments y revisar que todas las tablas consultadas estén en las migraciones.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">FL-06 · Patrón N+1 en ListBusesBasicService</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento</span><span>Archivo: ListBusesBasicService.cs:42-59</span></div>
+                    <h4>Descripción</h4>
+                    <p>Por cada bus consulta GetActiveByBusIdAsync, GetDriverNameAsync (gRPC a ms-iam) y GetModelNamesAsync (caché parcial). N+1 de llamadas gRPC/BD por bus listado.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Eager-load / batch de datos relacionados y completar caché de modelos para eliminar el N+1.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">FL-07 · Search materializa lista completa en memoria y filtra después en LINQ</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento / Persistencia</span><span>Archivo: SearchBusesService.cs:21-34; BusRepository.cs:25-34</span></div>
+                    <h4>Descripción</h4>
+                    <p>Search ejecuta GetAllAsync() completo y filtra en memoria con .Where(...) sin paginación ni filtro en SQL.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Aplicar filtros y paginación en la consulta SQL (EF Core), no en memoria.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.6 ms-route</h3>
+                <div class="sub">.NET/C# — controladores Route/Stop/City/Trip/RouteAssignment; repositorios; gRPC RouteGrpcService.</div>
+                <div class="finding finding-medio">
+                    <div class="fid">R-01 · Repositorios sin paginación consistente</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento</span><span>Archivo: RouteRepositoryImpl.cs y demás repositorios</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los repositorios de route no aplican paginación consistente en listados (GetAll sin Take), exponiendo volcado de datos en flotas grandes.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Aplicar paginación (page/size) en todos los endpoints de listado de route, stops y trips.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">R-02 · Filtro de tenant no aplicado en todos los repositorios de lectura</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / IDOR</span><span>Archivo: RouteBusAssignmentRepositoryImpl.cs; RouteStudentAssignmentRepositoryImpl.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Algunas consultas de asignaciones de buses y estudiantes no filtran estrictamente por campus/colegio del tenant, riesgo de oversharing entre colegios.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Aplicar filtro de tenant (SchoolId/CampusId) en cada lectura de asignaciones.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">R-03 · Ruta /trip declarada en Kong pero no documentada en catálogo de gateway</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Consistencia-docs</span><span>Archivo: kong.yml:180-181; service-catalog.md</span></div>
+                    <h4>Descripción</h4>
+                    <p>ms-route declara dos paths (/route, /trip) en Kong, pero el catálogo de gateway no documenta /trip como ruta propia.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Documentar /trip en el catálogo de servicios y OpenAPI de route.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">R-04 · Atributos de autorización duplicados (misma patrón que otros .NET)</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Buenas prácticas</span><span>Archivo: RequirePermissionAttribute.cs; RequireRoleAttribute.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Duplicación de atributos de autorización entre servicios .NET.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Extraer a librería compartida interna.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.7 ms-notification</h3>
+                <div class="sub">.NET/C# — controladores Incident/Scan/Alert/GuardianNotification/Device/Credential; Kafka consumers; ExpoPushNotifier; gRPC.</div>
+                <div class="finding finding-alto">
+                    <div class="fid">N-01 · Consumidores Kafka sin control de veneno (poison messages) ni reintentos con backoff</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Resiliencia / Mensajería</span><span>Archivo: IncidentReportedConsumer.cs; StudentScannedConsumer.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los consumidores de Kafka (IncidentReportedConsumer, StudentScannedConsumer) no muestran control de mensajes venenosos ni política de reintentos con backoff exponencial. Un mensaje mal formado puede bloquear el consumidor indefinidamente.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Implementar dead-letter topic y reintentos con backoff exponencial en los consumidores Kafka.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">N-02 · ExpoPushNotifier sin manejo de fallas parciales ni límites de tasa</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento / Notificaciones push</span><span>Archivo: ExpoPushNotifier.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>El notificador push de Expo no gestiona fallas parciales (algunos dispositivos fallan, otros no) ni respeta límites de tasa de Expo, riesgo de bloqueo por rate limit de Expo.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir manejo de fallas parciales por dispositivo y respeto a los límites de tasa de Expo (reintentos con 429).</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">N-03 · Expiración de DeviceToken sin limpieza de tokens inválidos</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Buenas prácticas / Datos</span><span>Archivo: DeviceTokenConfiguration.cs; DeviceController.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los device tokens se registran pero no hay limpieza de tokens inválidos/expirados, acumulando basura en la tabla y empujos fallidos repetidos.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Implementar limpieza periódica de DeviceToken expirados o inválidos (respuesta 410 de Expo).</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">N-04 · Controladores sin paginación en listados de alertas/incidentes</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento</span><span>Archivo: AlertController.cs; IncidentController.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los listados de alertas e incidentes no aplican paginación, riesgo de sobreconsulta para usuarios con historial largo.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Aplicar paginación en AlertController e IncidentController con filtros de fecha y tenant.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">N-05 · gRPC clients sin tiempo de espera (timeout) definido</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Buenas prácticas</span><span>Archivo: FamilyGrpcClient.cs; RouteGrpcClient.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los clientes gRPC (FamilyGrpcClient, RouteGrpcClient) no definen timeout de llamada, riesgo de bloqueo indefinido si el upstream no responde.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Definir deadline/timeout en todas las llamadas gRPC salientes.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">N-06 · Duplicación de atributos de autorización (misma patrón .NET)</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Buenas prácticas</span><span>Archivo: RequirePermissionAttribute.cs; RequireRoleAttribute.cs</span></div>
+                    <h4>Descripción</h4>
+                    <p>Duplicación de atributos de autorización entre servicios .NET.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Extraer a librería compartida interna.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.8 sg-ms-gps</h3>
+                <div class="sub">Java — GpsTcpServer (puerto 8842 TCP), GpsPacketHandler/decoders, GpsDeviceController/GpsLocationController; polling HTTP (ADR-014).</div>
+                <div class="finding finding-alto">
+                    <div class="fid">G-01 · sg-ms-gps documentado en arquitectura y Kong pero ausente del docker-compose principal</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Funcionalidad / Despliegue</span><span>Archivo: backend/docker-compose.yml (no hay servicio gps); kong.yml:231-232 (ms-gps:8080)</span></div>
+                    <h4>Descripción</h4>
+                    <p>El servicio gps-service está documentado en overview.md, deployment.md, service-catalog.md y referenciado en Kong (kong.yml ms-gps:8080), pero NO existe en el docker-compose principal. El upstream de Kong apunta a un host inexistente; el GPS no funciona en el despliegue documentado.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir sg-ms-gps al docker-compose principal o eliminar su referencia de Kong y de la documentación de arquitectura.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">G-02 · Servidor TCP GPS (puerto 8842) sin autenticación de dispositivos ni cifrado</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Seguridad / IoT</span><span>Archivo: GpsTcpServer.java; GpsClientHandler.java</span></div>
+                    <h4>Descripción</h4>
+                    <p>GpsTcpServer escucha en puerto 8842 TCP (protocolo GT06) sin autenticación de dispositivos GPS ni TLS/cifrado. Cualquier dispositivo puede enviar posiciones falsificadas para cualquier bus.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Implementar autenticación de dispositivos (IMEI + token/credencial) y cifrado TLS sobre el canal TCP de GPS.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">G-03 · HTTP polling para actualizaciones de ubicación (ADR-014) en lugar de push/WebSocket</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento / Arquitectura</span><span>Archivo: GpsLocationController.java; ADR-014</span></div>
+                    <h4>Descripción</h4>
+                    <p>El frontend consulta ubicación por polling HTTP en lugar de push/WebSocket, generando peticiones innecesarias y latencia en el rastreo en tiempo real.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Evaluar WebSocket o Server-Sent Events para actualizaciones de ubicación en tiempo real y reducir la frecuencia de polling.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">G-04 · Decodadores de protocolo GT06 sin validación estricta de trama ni manejo de tramas malformadas</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Buenas prácticas / IoT</span><span>Archivo: GpsFrameDecoder.java; GpsPacketParser.java; GpsPacketHandler.java</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los decodadores de tramas GT06 no muestran validación estricta de checksum/longitud ni manejo aislado de tramas malformadas; una trama corrupta podría afectar el parseo de lotes.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir validación de checksum y longitud, y aislar el parseo de tramas malformadas sin afectar al resto.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">G-05 · Puerto TCP 8842 publicado solo en localhost según deployment.md, pero sin restricción de interfaz en el código</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Seguridad / Red</span><span>Archivo: sg-ms-gps Dockerfile; deployment.md</span></div>
+                    <h4>Descripción</h4>
+                    <p>El documentation indica que el puerto 8842 se publica solo en localhost, pero no hay evidencia de restricción de interfaz en el servidor TCP del servicio.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Vincular GpsTcpServer a 127.0.0.1 (o a la interfaz interna) y no a 0.0.0.0.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.9 sg-ms-forgot-information</h3>
+                <div class="sub">.NET — controladores de password/email/phone change, OTP; .env y docker-compose con SECRETOS REALES commiteados.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">S-01 · SECRETOS REALES commiteados en .env y docker-compose</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Seguridad / Secretos expuestos</span><span>Archivo: sg-ms-forgot-information/.env; backend/docker-compose.yml:153-160</span></div>
+                    <h4>Descripción</h4>
+                    <p>Contiene en texto plano: contraseña SMTP de Gmail ([REDACTED]), cadena de conexión SQL Server con contraseña de sa ([REDACTED]) a RDS school-guardian.choygiky8hou.us-east-2.rds.amazonaws.com, INTERNAL_API_KEY, OTP_HASH_PEPPER y credenciales Twilio (Account SID [REDACTED], API Secret [REDACTED], Verify Service SID). Cualquiera con acceso al repositorio puede enviar correos SMS, conectar a la BD de producción y suplantar identidad.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> ELIMINAR inmediatamente estos archivos del repositorio y del historial de git (git filter-repo / BFG), rotar TODOS los secretos expuestos, y moverlos a un gestor de secretos. .env debe ir en .gitignore y .env.example solo con placeholders vacíos.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">S-02 · Rate limiting insuficiente en solicitudes de recuperación de contraseña/OTP</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / Autenticación</span><span>Archivo: controladores /api/v1/password*</span></div>
+                    <h4>Descripción</h4>
+                    <p>No se observó rate limiting específico en endpoints de solicitud de código OTP / cambio de contraseña, expuesto a fuerza bruta y bombardeo de correos/SMS.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir rate limiting por email/IP en endpoints de recuperación (forgot-password, verify-code, reset) y limitar reenvíos de OTP.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">S-03 · OTP sin expiración corta ni límite de intentos de verificación</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / Autenticación</span><span>Archivo: controladores de OTP; OTP_HASH_PEPPER</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los códigos OTP de recuperación no evidencian expiración corta ni límite de intentos de verificación, susceptible a fuerza bruta sobre el código.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Establecer expiración corta (p. ej. 10 min) y máximo de intentos (p. ej. 5) por código OTP.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">S-04 · Dependencia de cabeceras X-User-* inyectadas por Kong sin validación de proxy de confianza</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Seguridad / Autenticación</span><span>Archivo: docker-compose.yml (comentario "Cuidado: este servicio confía en las cabeceras X-User-*")</span></div>
+                    <h4>Descripción</h4>
+                    <p>ms-forgot-information confía en cabeceras X-User-* inyectadas por Kong. El propio docker-compose advierte que NUNCA debe ser alcanzable sin pasar por el gateway, pero no hay validación de proxy de confianza en el servicio.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir middleware que valide que la petición proviene de Kong (IP interna de la red Docker o cabecera firmada) antes de aceptar X-User-*.</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.10 Frontend Web (Angular)</h3>
+                <div class="sub">dvlp-web — auth.service.ts, auth.interceptor.ts, role.guard.ts, servicios API, dashboards admin/superadmin.</div>
+                <div class="finding finding-alto">
+                    <div class="fid">WEB-01 · JWT decodido sin verificación usado para autorización del cliente</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Autorización / Control de acceso</span><span>Archivo: auth.service.ts:250-258 (claims()), 183-215</span></div>
+                    <h4>Descripción</h4>
+                    <p>El cliente decodifica el payload del JWT con atob() sin verificar firma ni expiración, y usa claims (roleId, permissions) para decidir qué mostrar en menús y guards. Un atacante con control del frontend podría forjar claims y escalar privilegios visuales.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> No usar claims del JWT para decisiones de seguridad del cliente. Validar roles/permisos contra /profile o /me firmado por el backend; usar el JWT solo como portador Bearer.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">WEB-04 · Posible exposición de datos de alumnos en dashboard admin sin filtro por escuela</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Exposición de datos / BOLA</span><span>Archivo: dashboard-admin.ts:138-168</span></div>
+                    <h4>Descripción</h4>
+                    <p>studentsService.list() y routesService.list() se invocan sin pasar schoolId del administrador. Si el backend no filtra por escuela, un admin podría ver estudiantes y rutas de otros colegios.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Enviar schoolId (de authService.session.schoolId) en cada petición de listado y validar en el backend que el admin solo ve datos de su escuela.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">WEB-02 · Servicios API sin timeout ni cancelación de petición</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Disponibilidad / Manejo de errores</span><span>Archivo: buses.service.ts, routes.service.ts, students.service.ts (varios)</span></div>
+                    <h4>Descripción</h4>
+                    <p>Ninguna llamada HTTP define timeout (RxJS timeout() ni AbortController). Si el backend no responde, la petición queda colgada indefinidamente, bloqueando la UI y agotando conexiones.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Agregar timeout(10000) con catchError a todas las peticiones y AbortController vía withFetch() para cancelar al navegar fuera.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">WEB-03 · Paginación inconsistente entre servicios de listado</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Rendimiento / Datos</span><span>Archivo: students.service.ts, routes.service.ts, buses.service.ts</span></div>
+                    <h4>Descripción</h4>
+                    <p>list() devuelve arrays planos sin parámetros de paginación (page, size). El dashboard admin ya paginó alertas pero no estudiantes/rutas/buses, generando sobreconsulta en listados grandes.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Estandarizar list(page, size, search?) en todos los servicios API con respuesta paginada (content, totalElements, totalPages).</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">WEB-05 · Interceptor sin timeout global de petición HTTP</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Disponibilidad</span><span>Archivo: auth.interceptor.ts:17-43</span></div>
+                    <h4>Descripción</h4>
+                    <p>El interceptor reenvía la petición sin establecer timeout. Combinado con WEB-02, no hay cota superior en el tiempo de espera de ninguna petición autenticada.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Agregar timeout(15000) en el pipeline del interceptor para todas las peticiones, o configurar withFetch() con AbortSignal.timeout().</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.11 Frontend Mobile (React Native / Expo)</h3>
+                <div class="sub">guardian-escolar — authService.js, apiClient.js, servicios (fleetApi, routeApi, userApi, notificationApi, tripApi, forgotInformationService), App.js, roleConfig.js.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">MOB-01 · Secreto de Firebase Admin SDK commiteado (private_key RSA)</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Secretos expuestos / Gestión de credenciales</span><span>Archivo: school-guardian-641a4-firebase-adminsdk-fbsvc-7d2ee7128a.json (todo el archivo)</span></div>
+                    <h4>Descripción</h4>
+                    <p>El archivo contiene la private_key RSA de una cuenta de servicio de Firebase Admin (firebase-adminsdk-fbsvc@school-guardian-641a4.iam.gserviceaccount.com). Cualquiera con acceso al repositorio puede suplantar al backend, generar tokens Firebase y acceder a Firestore/Storage.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Eliminar el archivo del git inmediatamente (git rm --cached + .gitignore), rotar la clave en Firebase Console y nunca commitear service accounts; inyectar credenciales vía variables de entorno en build.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">MOB-04 · Pantallas sin protección de autenticación individual</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Control de acceso / Navegación</span><span>Archivo: App.js:267-343</span></div>
+                    <h4>Descripción</h4>
+                    <p>Todas las pantallas (MainPage, Profile, Family, Notifications, Datas) están registradas sin wrapper de autenticación. El control depende únicamente de initialRoute. Un deep link o manipulación puede montar Profile sin verificar sesión.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Envolver pantallas protegidas en un componente RequireAuth que verifique hasSession() y refresh() antes de renderizar, redirigiendo a Login si no hay sesión válida.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">MOB-02 · google-services.json con API key de Google commiteada</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Secretos expuestos</span><span>Archivo: google-services.json:16-19</span></div>
+                    <h4>Descripción</h4>
+                    <p>Contiene current_key [REDACTED] (API key de Google Maps/Android). Commitearla permite uso indebido, cuotaje y suplantación desde otras apps.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir a .gitignore, restringir la key por SHA-1 del certificado y dominio de la app, inyectarla vía EXPO_PUBLIC_GOOGLE_MAPS_API_KEY.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">MOB-03 · Ausencia de .env con EXPO_PUBLIC_API_URL visible en el repositorio</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Configuración</span><span>Archivo: authService.js:4-9; apiClient.js:3</span></div>
+                    <h4>Descripción</h4>
+                    <p>authService.js lanza error si EXPO_PUBLIC_API_URL no está definida, pero no se encontró .env ni .env.example en el repositorio móvil. Sin URL configurada, la app no conecta al backend en local/CI.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Crear .env.example con EXPO_PUBLIC_API_URL=http://localhost:8000 y documentar que .env es local y nunca se commitea.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">MOB-05 · Interceptor móvil sin single-flight en refresh (riesgo de refreshes duplicados)</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Auth / Concurrencia</span><span>Archivo: apiClient.js:44-54</span></div>
+                    <h4>Descripción</h4>
+                    <p>Cuando varias peticiones reciben 401 simultáneamente, cada una dispara auth.refresh() independiente (no hay refreshInFlight como en el web). Puede generar rotaciones de refresh token concurrentes y bloqueo de sesión.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Implementar single-flight en authService.refresh() (promesa compartida entre llamadas concurrentes).</div>
+                </div>
+            </div>
+
+            <div class="servicio-card">
+                <h3>3.12 Consistencia Documentación vs Implementación (docs/)</h3>
+                <div class="sub">Comparativa entre docs/07-api (OpenAPI), docs/05-architecture, docs/10-devops, docs/12-ux-ui, docs/11-quality, docs/06-data y el código real.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">D-01 · sg-ms-gps documentado en arquitectura/Kong pero ausente del docker-compose</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Consistencia-docs / Despliegue</span><span>Archivo: docs/05-architecture/overview.md:93; deployment.md:29; kong.yml:231-232 vs backend/docker-compose.yml</span></div>
+                    <h4>Descripción</h4>
+                    <p>gps-service está documentado en overview.md, deployment.md, service-catalog.md y referenciado en Kong, pero no existe en el docker-compose principal. El upstream de Kong apunta a host inexistente.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir sg-ms-gps al compose o quitar su referencia de Kong y docs.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">D-02 · OpenAPI declara servidores localhost:8080/:8000 pero ningún puerto publicado al host</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Consistencia-docs / Despliegue</span><span>Archivo: docs/07-api/contracts/openapi/*.yaml (servers) vs backend/docker-compose.yml:8 ("NINGÚN servicio publica puertos al host")</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los contratos OpenAPI declaran localhost:8080 y localhost:8000 como acceso directo, pero el compose no publica ningún puerto al host; desde fuera de Docker ni Kong es alcanzable.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir puertos al compose o corregir los URLs servers de los OpenAPI.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">D-03 · Secretos hardcodeados en docker-compose violan el principio de seguridad documentado</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Consistencia-docs / Seguridad</span><span>Archivo: docs/10-devops/local-setup.md ("NUNCA commitear .env") vs backend/docker-compose.yml:153-160 y sg-ms-forgot-information/.env</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los docs prohíben commitear secretos, pero el compose trae credenciales SMTP, hash pepper y API key de IAM hardcodeadas, y sg-ms-forgot-information/.env tiene contraseña de sa de RDS y credenciales Twilio en texto plano.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Mover secretos a .env/secret manager, rotar credenciales expuestas y alinear la práctica con el documento.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">D-04 · Nombres de servicio inconsistentes entre docs y repositorios reales</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Consistencia-docs</span><span>Archivo: docs/09-microservices/services/06-bus-service/, 08-gps-service/, 04-school-service/ vs docker-compose (ms-fleet, sg-ms-gps, ms-school-management)</span></div>
+                    <h4>Descripción</h4>
+                    <p>Los docs usan nombres "bus-service", "gps-service", "school-service" pero los repos/contenedores reales se llaman ms-fleet, sg-ms-gps, ms-school-management.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Estandarizar nombres canónicos en docs, contratos y kong.yml.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">D-05 · local-setup.md documenta curl localhost:8000/health y localhost:9092 (Kafka) inalcanzables</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Consistencia-docs / Operaciones</span><span>Archivo: docs/10-devops/local-setup.md:164,170 vs docker-compose (sin ports)</span></div>
+                    <h4>Descripción</h4>
+                    <p>local-setup.md indica verificar con curl localhost:8000/health y localhost:9092 para Kafka, pero ningún puerto está publicado y Kong no expone /health.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Corregir comandos de verificación o publicar puertos; quitar referencia a Kafka :9092 (no expuesto).</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">D-06 · data-dictionary.md referencia campos que no existen en el modelo desplegado</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Consistencia-docs / Datos</span><span>Archivo: docs/06-data/data-dictionary.md:34-45,68-69 vs docs/06-data/models.md</span></div>
+                    <h4>Descripción</h4>
+                    <p>El diccionario referencia Users, password_hash, SessionProfile.expires_at, deleted_at, Delivery.status que no existen en el modelo desplegado (usa Iam.Profile.PasswordHash, Iam.SessionProfile.DateEnd, Status en lugar de deleted_at).</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Corregir data-dictionary.md con nombres reales de tablas/columnas o actualizar el modelo.</div>
+                </div>
+                <div class="finding finding-medio">
+                    <div class="fid">D-07 · testing-strategy.md exige coverage ≥80% y tests de contrato OpenAPI en CI, no reflejado en los servicios</div>
+                    <div class="meta"><span>Severidad: <b>Medio</b></span><span>Categoría: Consistencia-docs / Calidad</span><span>Archivo: docs/11-quality/testing-strategy.md:39-43,121-131,245-266 vs tests en servicios (sin tests de controlador/contrato ni umbrales de coverage en CI)</span></div>
+                    <h4>Descripción</h4>
+                    <p>La estrategia exige coverage ≥80% global y tests de contrato contra OpenAPI en CI, pero los tests reales están en aplicación/dominio y no hay evidencia de umbrales que fallen el build.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Añadir tests de contrato y umbrales de coverage en CI por servicio.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">D-08 · design-system.md declara --bg-color #F0F4F8 pero el CSS real usa #EDF5FF</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Consistencia-docs / UX-UI</span><span>Archivo: docs/12-ux-ui/design-system.md:35-62 vs dvlp-web/src/styles.css:209-252</span></div>
+                    <h4>Descripción</h4>
+                    <p>El design-system documenta --bg-color: #F0F4F8 como color base, pero el CSS real de .light-theme-blue declara #EDF5FF. Radios y tokens de cards/buttons tampoco coinciden del todo.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Sincronizar los valores de design-system.md con las variables CSS reales (o viceversa) y completar la consolidación de tokens pendiente.</div>
+                </div>
+                <div class="finding finding-bajo">
+                    <div class="fid">D-09 · api-gateway.yaml declara paths: {} pero kong.yml configura 8 upstreams operativos</div>
+                    <div class="meta"><span>Severidad: <b>Bajo</b></span><span>Categoría: Consistencia-docs / API</span><span>Archivo: docs/07-api/contracts/openapi/api-gateway.yaml:8,16 vs kong.yml:26-246</span></div>
+                    <h4>Descripción</h4>
+                    <p>El contrato del gateway declara no tener operaciones propias, pero kong.yml configura múltiples rutas operativas (8 upstreams).</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Complementar api-gateway.yaml con las rutas de Kong para que el contrato refleje la realidad.</div>
+                </div>
+            </div>
+
+        <div class="section">
+            <h2>4. Conclusión y Veredicto</h2>
+            <p>El proyecto School Guardian presenta una arquitectura de microservicios bien estructurada (Kong como gateway, JWT RS256 con JWKS, separación hexagonal en los servicios .NET, rotación de refresh tokens, gRPC para comunicación interna, Kafka para notificaciones), pero con <b>debilidades críticas de seguridad y operación</b> que impiden considerar el sistema listo para producción sin remediación.</p>
+            <p><b>Hallazgos más críticos:</b> (1) secretos reales commiteados en sg-ms-forgot-information (.env y docker-compose: contraseña SMTP, sa de RDS, API keys Twilio, OTP pepper) y Firebase Admin private_key en el frontend mobile; (2) ausencia de rate limiting y bloqueo de cuenta en ms-iam (fuerza bruta/credential stuffing); (3) sg-ms-gps referenciado en Kong/arquitectura pero ausente del despliegue; (4) IDOR en listado de sedes de ms-school-management y endpoints sin autorización en ms-fleet; (5) CORS con orígenes de túnel efímero y KONG_TRUSTED_IPS 0.0.0.0/0.</p>
+            <p><b>Veredicto general:</b> <span class="badge badge-critico">NO LISTO PARA PRODUCCIÓN — REQUIERE REMEDIACIÓN CRÍTICA</span>. Se recomienda: rotar inmediatamente todos los secretos expuestos y eliminarlos del historial de git; implementar rate limiting/bloqueo de cuenta en login; cerrar los IDOR y validar cabeceras X-User-* con proxy de confianza; añadir sg-ms-gps al despliegue o quitar su referencia; corregir CORS y trusted IPs; y estandarizar paginación, manejo de errores y cobertura de tests.</p>
+            <p><b>Verificación E2E:</b> no se pudo realizar en entorno real (ningún servidor desplegado alcanzable; credenciales provistas solo para el web). Se validó por trazado estático de flujos de login (ms-iam LoginService, auth.service.ts, auth.interceptor.ts), recuperación de contraseña (ms-forgot-information) y configuración de Kong.</p>
+        </div>
+
+        <div class="footer">
+            Auditoría Técnica E2E — School Guardian · Generado 29 Oct 2026 · Alcance: backend/, scholl-guardian-project/ (frontends), docs/ · Rama: main<br>
+            Diseño y tipografía estandarizados con el aplicativo web de School Guardian (paleta: --bg-color #F0F4F8, --color-navbar #1A56DB, tipografía Segoe UI / Roboto).
+        </div>
+    </div>
 </body>
 </html>

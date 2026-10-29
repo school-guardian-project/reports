@@ -108,14 +108,64 @@
 
         <div class="kpi-grid">
             <div class="kpi"><div class="num">11</div><div class="lbl">Servicios/backend + frontends auditados</div></div>
-            <div class="kpi"><div class="num badge badge-critico" style="padding:0.15rem 0.6rem">8 CRÍTICOS</div><div class="lbl">Hallazgos críticos</div></div>
-            <div class="kpi"><div class="num badge badge-alto" style="padding:0.15rem 0.6rem">21 ALTOS</div><div class="lbl">Hallazgos altos</div></div>
+            <div class="kpi"><div class="num badge badge-critico" style="padding:0.15rem 0.6rem">9 CRÍTICOS</div><div class="lbl">Hallazgos críticos</div></div>
+            <div class="kpi"><div class="num badge badge-alto" style="padding:0.15rem 0.6rem">22 ALTOS</div><div class="lbl">Hallazgos altos</div></div>
             <div class="kpi"><div class="num badge badge-medio" style="padding:0.15rem 0.6rem">35 MEDIOS</div><div class="lbl">Hallazgos medios</div></div>
             <div class="kpi"><div class="num badge badge-bajo" style="padding:0.15rem 0.6rem">13 BAJOS</div><div class="lbl">Hallazgos bajos</div></div>
         </div>
 
-        <div class="nota">
-            <b>Limitación de verificación en entorno real:</b> no existe servidor desplegado alcanzable (puerto 8000 sin respuesta en localhost; no se proporcionó URL de producción/staging). Los servicios backend (Kong :8000, ms-iam, ms-user-management, ms-school-management, ms-fleet, ms-route, ms-notification, sg-ms-forgot-information, sg-ms-gps) y los frontends (web Angular en :4200 / mobile Expo) no están en ejecución. Por tanto, la "verificación E2E" se basa en trazado estático de código, contratos OpenAPI y configuración de Kong, corroborados con credenciales documentadas (Admin: admin2@school-guardian.com / Superadmin: sch00l.guardi4n@gmail.com — solo para el web). Los flujos de login y recupero se validaron por lectura del código de ms-iam, ms-forgot-information, auth.service.ts y auth.interceptor.ts.
+        <div class="section">
+            <h2>2. Verificación E2E en Entorno Real</h2>
+            <p>Se verificó la funcionalidad contra el entorno desplegado: <b>Web</b> en <code>https://guardian-escolar.vercel.app</code> y <b>API</b> en <code>https://school-guardian.duckdns.org</code> (Kong OSS :443, con Caddy delante), usando las credenciales proporcionadas. A continuación los flujos recorridos:</p>
+            <table>
+                <thead>
+                    <tr><th>Flujo</th><th>Credenciales</th><th>Resultado</th><th>Detalle observado</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Acceso a la web</td><td>—</td><td><span class="badge badge-bajo">OK</span></td>
+                        <td>HTTP 200. SPA Angular cargada correctamente en Vercel.</td>
+                    </tr>
+                    <tr>
+                        <td>Login</td><td>Admin: admin2@school-guardian.com / 99000000005</td>
+                        <td><span class="badge badge-bajo">OK</span></td>
+                        <td>HTTP 200. Se emite accessToken (JWT RS256, rol Admin, 14 permisos), refreshToken en cookie HttpOnly/Secure/SameSite=None, expiración 60 min (access) / 7 días (refresh). Rate limiting activo en Kong (20 req/min, 200 req/hora por IP en login).</td>
+                    </tr>
+                    <tr>
+                        <td>Login</td><td>Superadmin: sch00l.guardi4n@gmail.com / Guardian24</td>
+                        <td><span class="badge badge-critico">FALLA</span></td>
+                        <td>HTTP 401 <code>INVALID_CREDENTIALS</code>. El superadmin <b>no puede iniciar sesión</b> con las credenciales proporcionadas en el entorno de producción.</td>
+                    </tr>
+                    <tr>
+                        <td>GET /api/v1/auth/profile</td><td>Token Admin</td>
+                        <td><span class="badge badge-bajo">OK</span></td>
+                        <td>HTTP 200. Perfil del admin retornado correctamente. Rate limiting por header Authorization (300 req/min).</td>
+                    </tr>
+                    <tr>
+                        <td>GET /school-management/schools</td><td>Token Admin</td>
+                        <td><span class="badge badge-alto">FALLA</span></td>
+                        <td>HTTP 404. El endpoint de escuelas no responde (servicio alcanzable: server Kestrel, pero ruta no encontrada).</td>
+                    </tr>
+                    <tr>
+                        <td>GET /fleet/buses</td><td>Token Admin</td>
+                        <td><span class="badge badge-alto">FALLA</span></td>
+                        <td>HTTP 404. El endpoint de buses no responde.</td>
+                    </tr>
+                    <tr>
+                        <td>GET /route/routes</td><td>Token Admin</td>
+                        <td><span class="badge badge-alto">FALLA</span></td>
+                        <td>HTTP 404. El endpoint de rutas no responde.</td>
+                    </tr>
+                    <tr>
+                        <td>GET /notification/alerts</td><td>Token Admin</td>
+                        <td><span class="badge badge-alto">FALLA</span></td>
+                        <td>HTTP 404. El endpoint de alertas no responde.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="nota">
+                <b>Interpretación:</b> ms-iam y Kong funcionan correctamente en producción (login, JWT, refresh, profile). Sin embargo, los servicios .NET (school-management, fleet, route, notification) están alcanzables a través de Kong pero sus endpoints devuelven 404, lo que indica problemas de enrutamiento/despliegue en producción o rutas no mapeadas en Kong. El superadmin no puede autenticarse.
+            </div>
         </div>
 
         <div class="section">
@@ -150,7 +200,7 @@
                         <td><span class="badge badge-critico">Crítico</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
-                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-critico">Crítico</span></td>
                     </tr>
                     <tr>
                         <td><b>ms-user-management</b></td>
@@ -168,7 +218,7 @@
                         <td><span class="badge badge-alto">Alto</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
-                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
                     </tr>
                     <tr>
                         <td><b>ms-fleet</b></td>
@@ -177,7 +227,7 @@
                         <td><span class="badge badge-alto">Alto</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
-                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
                     </tr>
                     <tr>
                         <td><b>ms-route</b></td>
@@ -186,7 +236,7 @@
                         <td><span class="badge badge-medio">Medio</span></td>
                         <td><span class="badge badge-bajo">Bajo</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
-                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
                     </tr>
                     <tr>
                         <td><b>ms-notification</b></td>
@@ -195,7 +245,7 @@
                         <td><span class="badge badge-alto">Alto</span></td>
                         <td><span class="badge badge-bajo">Bajo</span></td>
                         <td><span class="badge badge-medio">Medio</span></td>
-                        <td><span class="badge badge-medio">Medio</span></td>
+                        <td><span class="badge badge-alto">Alto</span></td>
                     </tr>
                     <tr>
                         <td><b>sg-ms-gps</b></td>
@@ -244,8 +294,8 @@
                     <tr><th>Severidad</th><th>Cantidad</th><th>Ejemplos representativos</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td><span class="badge badge-critico">Crítico</span></td><td>8</td><td>Secretos reales commiteados (sg-ms-forgot-information .env y docker-compose: SMTP, sa RDS, Twilio, OTP pepper); Firebase Admin private_key commiteado (mobile); ms-iam sin rate limiting/bloqueo de cuenta; IDOR listado de sedes ms-school-management; endpoint de flota sin autorización ms-fleet; secretos hardcodeados ms-fleet/.env; sg-ms-gps ausente del compose pero referenciado en Kong; CORS con orígenes de túnel efímero.</td></tr>
-                    <tr><td><span class="badge badge-alto">Alto</span></td><td>21</td><td>Proveedores de tenant inconsistentes; confianza ciega en cabeceras X-User-*; listado GPS sin filtro de tenant; KONG_TRUSTED_IPS 0.0.0.0/0; JWT decodido sin verificación en cliente web; pantallas mobile sin RequireAuth; logout no revoca refresh; deny-list en memoria; claves RSA efímeras; credenciales en .env ms-iam; PATCH status sin acotar tenant; GET buses/assigned sin atributo auth; CORS orígenes túnel; sin límite cuerpo/timeouts Kong; sin deny-list sg-jwt; consumidores Kafka sin veneno; etc.</td></tr>
+                    <tr><td><span class="badge badge-critico">Crítico</span></td><td>9</td><td>Secretos reales commiteados (sg-ms-forgot-information .env y docker-compose: SMTP, sa RDS, Twilio, OTP pepper); Firebase Admin private_key commiteado (mobile); ms-iam sin rate limiting/bloqueo de cuenta; IDOR listado de sedes ms-school-management; endpoint de flota sin autorización ms-fleet; secretos hardcodeados ms-fleet/.env; sg-ms-gps ausente del compose pero referenciado en Kong; CORS con orígenes de túnel efímero; <b>Superadmin no puede iniciar sesión en producción (credenciales inválidas)</b>.</td></tr>
+                    <tr><td><span class="badge badge-alto">Alto</span></td><td>22</td><td>Proveedores de tenant inconsistentes; confianza ciega en cabeceras X-User-*; listado GPS sin filtro de tenant; KONG_TRUSTED_IPS 0.0.0.0/0; JWT decodido sin verificación en cliente web; pantallas mobile sin RequireAuth; logout no revoca refresh; deny-list en memoria; claves RSA efímeras; credenciales en .env ms-iam; PATCH status sin acotar tenant; GET buses/assigned sin atributo auth; CORS orígenes túnel; sin límite cuerpo/timeouts Kong; sin deny-list sg-jwt; consumidores Kafka sin veneno; <b>endpoints de servicios .NET devuelven 404 en producción (schools, buses, routes, alerts)</b>; etc.</td></tr>
                     <tr><td><span class="badge badge-medio">Medio</span></td><td>35</td><td>Consultas sin paginación (N+1, .ToList() sin Take); excepciones genéricas 500; dos @RestControllerAdvice inconsistente; refresh sin jti obligatorio; salud pública sin rate limit; cobertura tests &lt;80% y sin tests de contrato; data-dictionary vs modelo desplegado; design-system vs CSS real; etc.</td></tr>
                     <tr><td><span class="badge badge-bajo">Bajo</span></td><td>13</td><td>Detail=ex.Message expone detalles internos; atributos de autorización duplicados en 3 servicios; X-User-Role condicional en sg-jwt; public_paths por prefijo; api-gateway.yaml con paths: {}; colores del design-system no sincronizados; etc.</td></tr>
                 </tbody>
@@ -826,12 +876,31 @@
                 </div>
             </div>
 
+            <div class="servicio-card">
+                <h3>3.13 Hallazgos de Verificación E2E (Entorno Real)</h3>
+                <div class="sub">Hallazgos descubiertos durante la verificación funcional contra guardian-escolar.vercel.app y school-guardian.duckdns.org.</div>
+                <div class="finding finding-critico">
+                    <div class="fid">E2E-01 · Superadmin no puede iniciar sesión en producción</div>
+                    <div class="meta"><span>Severidad: <b>Crítico</b></span><span>Categoría: Funcionalidad / Autenticación</span><span>Entorno: https://school-guardian.duckdns.org/api/v1/auth/login</span></div>
+                    <h4>Descripción</h4>
+                    <p>Las credenciales de superadmin proporcionadas (<code>sch00l.guardi4n@gmail.com / Guardian24</code>) devuelven HTTP 401 <code>INVALID_CREDENTIALS</code>. El superadmin no puede acceder al sistema en el entorno de producción, lo que bloquea todas las operaciones de administración global.</p>
+                    <div class="recomendacion"><b>Recomendación:</b> Verificar que la cuenta de superadmin exista en la base de datos de producción, que su contraseña sea correcta y que el estado de su perfil sea Activo. Si la cuenta fue migrada de otro entorno, resetear su contraseña y revalidar.</div>
+                </div>
+                <div class="finding finding-alto">
+                    <div class="fid">E2E-02 · Endpoints de servicios .NET devuelven 404 en producción</div>
+                    <div class="meta"><span>Severidad: <b>Alto</b></span><span>Categoría: Funcionalidad / Despliegue</span><span>Entorno: https://school-guardian.duckdns.org (school-management, fleet, route, notification)</span></div>
+                    <h4>Descripción</h4>
+                    <td>Aunque Kong y ms-iam funcionan correctamente en producción (login, JWT, profile), los servicios .NET escolares (school-management, fleet, route, notification) son alcanzables a través de Kong (responden con servidor Kestrel) pero todos sus endpoints devuelven HTTP 404. Las rutas configuradas en Kong no coinciden con los paths de los controladores, o los servicios no están completamente desplegados/configurados.</td>
+                    <div class="recomendacion"><b>Recomendación:</b> Revisar la configuración de Kong (rutas, strip_path, service URLs) para cada servicio .NET en producción. Verificar que los controladores expongan los paths esperados y que los servicios estén desplegados con las últimas versiones de código.</div>
+                </div>
+            </div>
+
         <div class="section">
             <h2>4. Conclusión y Veredicto</h2>
             <p>El proyecto School Guardian presenta una arquitectura de microservicios bien estructurada (Kong como gateway, JWT RS256 con JWKS, separación hexagonal en los servicios .NET, rotación de refresh tokens, gRPC para comunicación interna, Kafka para notificaciones), pero con <b>debilidades críticas de seguridad y operación</b> que impiden considerar el sistema listo para producción sin remediación.</p>
             <p><b>Hallazgos más críticos:</b> (1) secretos reales commiteados en sg-ms-forgot-information (.env y docker-compose: contraseña SMTP, sa de RDS, API keys Twilio, OTP pepper) y Firebase Admin private_key en el frontend mobile; (2) ausencia de rate limiting y bloqueo de cuenta en ms-iam (fuerza bruta/credential stuffing); (3) sg-ms-gps referenciado en Kong/arquitectura pero ausente del despliegue; (4) IDOR en listado de sedes de ms-school-management y endpoints sin autorización en ms-fleet; (5) CORS con orígenes de túnel efímero y KONG_TRUSTED_IPS 0.0.0.0/0.</p>
             <p><b>Veredicto general:</b> <span class="badge badge-critico">NO LISTO PARA PRODUCCIÓN — REQUIERE REMEDIACIÓN CRÍTICA</span>. Se recomienda: rotar inmediatamente todos los secretos expuestos y eliminarlos del historial de git; implementar rate limiting/bloqueo de cuenta en login; cerrar los IDOR y validar cabeceras X-User-* con proxy de confianza; añadir sg-ms-gps al despliegue o quitar su referencia; corregir CORS y trusted IPs; y estandarizar paginación, manejo de errores y cobertura de tests.</p>
-            <p><b>Verificación E2E:</b> no se pudo realizar en entorno real (ningún servidor desplegado alcanzable; credenciales provistas solo para el web). Se validó por trazado estático de flujos de login (ms-iam LoginService, auth.service.ts, auth.interceptor.ts), recuperación de contraseña (ms-forgot-information) y configuración de Kong.</p>
+            <p><b>Verificación E2E (entorno real):</b> se verificó contra <code>https://guardian-escolar.vercel.app</code> (web) y <code>https://school-guardian.duckdns.org</code> (API/Kong). Resultado: login Admin ✅ (HTTP 200, JWT válido, permisos RBAC, rate limiting activo); login Superadmin ❌ (HTTP 401 INVALID_CREDENTIALS); profile ✅ (HTTP 200); endpoints de servicios .NET (schools, buses, routes, alerts) ❌ (HTTP 404 en todos).</p>
         </div>
 
         <div class="footer">
